@@ -1,13 +1,14 @@
 from contextlib import asynccontextmanager
 from typing import Union
-from sqlite3 import Connection
-from fastapi import FastAPI, Depends
+import random
+from fastapi import FastAPI, APIRouter
 from databases import Database
 
 DATABASE_URL="sqlite:///./mydb.db"
 db = Database(DATABASE_URL)
 
-
+global idPercurso
+idPercurso = 0
 @asynccontextmanager
 async def connect_database(app: FastAPI):
     # Load the ML model
@@ -19,6 +20,25 @@ async def connect_database(app: FastAPI):
     print('Banco desconectado')
 app = FastAPI(lifespan=connect_database)
 
+
+
+@app.post('/percurso/iniciar')
+def percurso_iniciar():
+    """
+    Inicia um novo percurso e envia uma requisição para o carrinho para iniciar a sua trajetória.
+    """
+    idPercurso= random.randint(1, 20)
+    return {'idPercurso': idPercurso, 'message': 'percurso inicado'} 
+
+@app.put('/percurso/finalizar')
+def percurso_finalizar():
+    return {'message': 'percurso finalizado'}
+
+
+
+"""
+    IMPORTANTE: ABAIXO TEMOS ALGUNS EXEMPLOS DE QUERIES E DE COMO UTILIZAR O FASTAPI PARA FAZER APIs
+"""
 @app.get("/")
 async def create_table():
     await db.execute("CREATE TABLE movie(name, year, rate)")
@@ -36,9 +56,10 @@ async def get_movie():
     query = await db.fetch_all('SELECT * FROM movie')
     return query
 
-@app.get('/user')
-def get_user():
-    return testfunc()
+@app.post('carrinho')
+async def toggle_carrinho():
+    ...
+    ...
 
 @app.get("/items/{item_id}")
 def read_item(item_id: int, q: Union[str, None] = None):
