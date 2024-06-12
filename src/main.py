@@ -64,3 +64,8 @@ async def toggle_carrinho():
 @app.get("/items/{item_id}")
 def read_item(item_id: int, q: Union[str, None] = None):
     ...
+
+
+@app.get("percurso/")
+def get_percursos():
+    # pegar todos os percursos para calcular a dist percorrida e tempo decorrido
