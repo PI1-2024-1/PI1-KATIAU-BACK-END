@@ -1,19 +1,17 @@
 from contextlib import asynccontextmanager
 from typing import Union
 import random
-from fastapi import FastAPI, APIRouter
 from databases import Database
+from fastapi import FastAPI
 
-DATABASE_URL="sqlite:///./mydb.db"
-db = Database(DATABASE_URL)
+from init_db import init_database
 
-global idPercurso
-idPercurso = 0
+DATABASE_URL="sqlite:///./katiau.db"
+db = Database(DATABASE_URL) 
 @asynccontextmanager
 async def connect_database(app: FastAPI):
+    await init_database(db)
     # Load the ML model
-    print(f"Conectado ao banco de dados {DATABASE_URL}")
-    await db.connect()
     yield
     # Clean up the ML models and release the resources
     await db.disconnect()
@@ -53,7 +51,7 @@ async def create_movie():
 
 @app.get("/movie/get")
 async def get_movie():
-    query = await db.fetch_all('SELECT * FROM movie')
+    query = await db.fetch_all('SELECT * FROM percurso')
     return query
 
 @app.post('carrinho')
