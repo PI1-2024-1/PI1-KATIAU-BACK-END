@@ -9,14 +9,14 @@ from init_db import init_database
 DATABASE_URL="sqlite:///./katiau.db"
 db = Database(DATABASE_URL) 
 @asynccontextmanager
-async def connect_database(app: FastAPI):
+async def pre_init(app: FastAPI):
     await init_database(db)
     # Load the ML model
     yield
     # Clean up the ML models and release the resources
     await db.disconnect()
     print('Banco desconectado')
-app = FastAPI(lifespan=connect_database)
+app = FastAPI(lifespan=pre_init)
 
 
 
