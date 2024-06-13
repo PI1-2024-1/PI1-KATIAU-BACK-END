@@ -3,17 +3,16 @@ from typing import Union
 import random
 from fastapi import FastAPI, APIRouter
 from databases import Database
+from init_DataBase import init_database
 
-DATABASE_URL="sqlite:///./mydb.db"
-db = Database(DATABASE_URL)
+db = None
 
 global idPercurso
 idPercurso = 0
 @asynccontextmanager
 async def connect_database(app: FastAPI):
+    db = await init_database()
     # Load the ML model
-    print(f"Conectado ao banco de dados {DATABASE_URL}")
-    await db.connect()
     yield
     # Clean up the ML models and release the resources
     await db.disconnect()
@@ -53,7 +52,7 @@ async def create_movie():
 
 @app.get("/movie/get")
 async def get_movie():
-    query = await db.fetch_all('SELECT * FROM movie')
+    query = await db.fetch_all('SELECT * FROM percurso')
     return query
 
 @app.post('carrinho')
