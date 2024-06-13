@@ -33,6 +33,24 @@ def percurso_finalizar():
     return {'message': 'percurso finalizado'}
 
 
+@app.get("/percurso/")
+async def get_percursos():
+    # Execute a SELECT query to fetch all rows and specific columns
+    query = "SELECT idPercurso, distPercorrida, tempoDecorrido FROM percurso"
+    rows = await db.fetch_all(query)
+    
+    # Transform the data into a list of dictionaries
+    data = []
+    for row in rows:
+        data.append({
+            "idPercurso": row["idPercurso"],
+            "distPercorrida": row["distPercorrida"],
+            "tempoDecorrido": row["tempoDecorrido"]
+        })
+    
+    # Return the data in JSON format
+    return data
+
 
 """
     IMPORTANTE: ABAIXO TEMOS ALGUNS EXEMPLOS DE QUERIES E DE COMO UTILIZAR O FASTAPI PARA FAZER APIs
@@ -64,23 +82,3 @@ def read_item(item_id: int, q: Union[str, None] = None):
     ...
 
 
-@app.get("percurso/")
-def get_percursos():
-    async def fetch_data():
-        # Connect to the database
-        async with db:
-            # Execute a SELECT query to fetch all rows and specific columns
-            query = "SELECT idPercurso, distPercorrida, tempoDecorrido FROM Percurso"
-            rows = await db.fetch_all(query)
-            
-            # Transform the data into a list of dictionaries
-            data = []
-            for row in rows:
-                data.append({
-                    "id": row["id"],
-                    "distance": row["distance"],
-                    "time": row["time"]
-                })
-            
-            # Return the data in JSON format
-            return data
