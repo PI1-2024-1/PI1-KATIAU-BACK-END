@@ -4,7 +4,7 @@ Back-end para o carrinho seguidor de linha KATIAU. Utiliza o FastApi e SQLITE3.
 
 ## Instruções de como Rodar
 
-Primeiramente tenha o `python 3.12.3` e crie um virtual env e associe esse virtual env ao seu terminal. Voce pode fazer isso exetuando estes comandos em seu terminal.
+Primeiramente tenha o `python 3.12.4` e crie um virtual env e associe esse virtual env ao seu terminal. Voce pode fazer isso exetuando estes comandos em seu terminal.
 
 ```bash
 python -m venv .venv
@@ -22,7 +22,7 @@ source .venv/bin/activate
 Após isso você deve instalar os pacotes do ambiente descritos no `requirements.txt`. Para isso rode o seguinte comando
 
 ```bash
-pip install -r requirements. txt
+pip install -r requirements.txt
 ```
 
 Por fim você pode executar a api em modo de desenvolvimento com o `fastapi dev`. Ele irá executar uma instância da API na url http://localhost:8000/. Para visualizar a documentação da API acesse http://localhost:8000/docs.
