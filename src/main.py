@@ -3,14 +3,29 @@ from typing import Union
 import random
 from databases import Database
 from fastapi import FastAPI
-
+import asyncio
+import threading
 from init_db import init_database
-
+from bluetooth_connector import read_bluetooth, write_bluetooth
 DATABASE_URL="sqlite:///./katiau.db"
 db = Database(DATABASE_URL) 
+
+def bluetooth_reader_threaded_function(args):
+    """
+    Função que encapsula a função de  de bluetooth passando o contexto do banco de dados
+    """
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    loop.run_until_complete(read_bluetooth(args))
+    loop.close()
+
 @asynccontextmanager
 async def pre_init(app: FastAPI):
     await init_database(db)
+    thread_bluetooth_reader = threading.Thread(target=bluetooth_reader_threaded_function, args=[db])
+    thread_bluetooth_reader.daemon = True
+    thread_bluetooth_reader.start()
     # Load the ML model
     yield
     # Clean up the ML models and release the resources
@@ -57,9 +72,8 @@ async def get_percursos():
 """
 @app.get("/")
 async def create_table():
-    await db.execute("CREATE TABLE movie(name, year, rate)")
-    return "Created Table"
-
+    data = write_bluetooth(b'1')
+    return data
 
 @app.get("/movie/create")
 async def create_movie():
