@@ -1,17 +1,16 @@
 from contextlib import asynccontextmanager
 from typing import Union
 import random
-from fastapi import FastAPI, APIRouter
 from databases import Database
-from init_DataBase import init_database
+from fastapi import FastAPI
 
-db = None
+from init_db import init_database
 
-global idPercurso
-idPercurso = 0
+DATABASE_URL="sqlite:///./katiau.db"
+db = Database(DATABASE_URL) 
 @asynccontextmanager
 async def connect_database(app: FastAPI):
-    db = await init_database()
+    await init_database(db)
     # Load the ML model
     yield
     # Clean up the ML models and release the resources
