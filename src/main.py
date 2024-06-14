@@ -21,14 +21,10 @@ def bluetooth_reader_threaded_function(args):
 @asynccontextmanager
 async def pre_init(app: FastAPI):
     await init_database(db)
-    # thread_bluetooth_reader = threading.Thread(target=bluetooth_reader_threaded_function, args=[db])
-    # thread_bluetooth_reader.daemon = True
-    # thread_bluetooth_reader.start()
-    asyncio.create_task(read_bluetooth(db))
-    # Load the ML model
-    yield
     
-    # Clean up the ML models and release the resources
+    # Comente essa proxima linha caso necessário
+    asyncio.create_task(read_bluetooth(db))
+    yield
     await db.disconnect()
     print('Banco desconectado')
 app = FastAPI(lifespan=pre_init)
