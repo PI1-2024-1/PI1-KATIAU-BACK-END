@@ -4,7 +4,7 @@ import random
 from databases import Database
 from fastapi import FastAPI
 import asyncio
-import threading
+import logger
 from init_db import init_database
 from bluetooth_connector import read_bluetooth, write_bluetooth
 DATABASE_URL="sqlite:///./katiau.db"
@@ -14,20 +14,20 @@ def bluetooth_reader_threaded_function(args):
     """
     Função que encapsula a função de  de bluetooth passando o contexto do banco de dados
     """
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
-    loop.run_until_complete(read_bluetooth(args))
-    loop.close()
+    
+    read_bluetooth(args)
+    
 
 @asynccontextmanager
 async def pre_init(app: FastAPI):
     await init_database(db)
-    thread_bluetooth_reader = threading.Thread(target=bluetooth_reader_threaded_function, args=[db])
-    thread_bluetooth_reader.daemon = True
-    thread_bluetooth_reader.start()
+    # thread_bluetooth_reader = threading.Thread(target=bluetooth_reader_threaded_function, args=[db])
+    # thread_bluetooth_reader.daemon = True
+    # thread_bluetooth_reader.start()
+    asyncio.create_task(read_bluetooth(db))
     # Load the ML model
     yield
+    
     # Clean up the ML models and release the resources
     await db.disconnect()
     print('Banco desconectado')

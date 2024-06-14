@@ -3,16 +3,13 @@ import datetime
 import json
 import time
 from databases import Database
-# import socket
-# sock = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM)
-# baddr = 'fc:b4:67:8c:85:fa'
-# channel = 4
-
+import logging
+logger = logging.getLogger('Katiau')
 def write_bluetooth(data: bytes):
     serialPort = serial.Serial(
         port="COM9", baudrate=115200, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE
     )
-    print('write in COM9: ', data)
+    logger.info(f'Escrevendo na COM9: {data}')
     return serialPort.write(data)
 
 
@@ -26,16 +23,16 @@ async def get_current_percurso(db:Database):
 async def save_telemetria_in_db(db: Database, telemetria):
     idPercurso = await get_current_percurso(db)
 
-    print(idPercurso, telemetria)
+    logger.info(f'{idPercurso}, {telemetria}')
     sql = f"""INSERT INTO telemetria (idPercurso, distTotal, posX, posY, velocidade, aceleracao, corrente, energia, data) VALUES 
     ({idPercurso}, {telemetria['distTotal']}, {telemetria['posX']}, {telemetria['posY']}, {telemetria['velocidade']}, {telemetria['aceleracao']}, {telemetria['corrente']}, {telemetria['energia']}, '{telemetria['data']}')"""
     # print(sql)
     await db.execute(sql)
-    print('Registro Telemetria inserida no banco')
+    logger.info('Registro Telemetria inserido no banco')
 
 
 async def read_bluetooth(db: Database):
-    print("Processo de leitura de bluetooth iniciado.")
+    logger.info("Processo de leitura de bluetooth iniciado.")
     port = "COM10"
     while 1:
         try:
@@ -43,12 +40,12 @@ async def read_bluetooth(db: Database):
                 port=port, baudrate=115200, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE
             )
         except serial.SerialException:
-            print(f'Não foi possível conectar ao bluetooth na porta {port}. Tentando novamente em 10 seg')
+            logger.error(f'Não foi possível conectar ao bluetooth na porta {port}. Tentando novamente em 10 seg')
             time.sleep(10)
             continue
         break
 
-    print('Bluetooth conectado com sucesso na porta ', port)
+    logger.info(f'Bluetooth conectado com sucesso na porta {port}')
 
     while 1:
         time.sleep(0.1)
