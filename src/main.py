@@ -7,15 +7,18 @@ import asyncio
 import logger
 from init_db import init_database
 from bluetooth_connector import read_bluetooth, write_bluetooth
+from fastapi.middleware.cors import CORSMiddleware
+
+
 DATABASE_URL="sqlite:///./katiau.db"
 db = Database(DATABASE_URL) 
 
-def bluetooth_reader_threaded_function(args):
-    """
-    Função que encapsula a função de  de bluetooth passando o contexto do banco de dados
-    """
+# def bluetooth_reader_threaded_function(args):
+#     """
+#     Função que encapsula a função de  de bluetooth passando o contexto do banco de dados
+#     """
     
-    read_bluetooth(args)
+#     read_bluetooth(args)
     
 
 @asynccontextmanager
@@ -23,13 +26,25 @@ async def pre_init(app: FastAPI):
     await init_database(db)
     
     # Comente essa proxima linha caso necessário
-    asyncio.create_task(read_bluetooth(db))
+    # asyncio.create_task(read_bluetooth(db))
     yield
     await db.disconnect()
     print('Banco desconectado')
 app = FastAPI(lifespan=pre_init)
 
+origins = [
+    "http://localhost",
+    "http://localhost:5173",  # Adicione aqui qualquer origem que você deseja permitir
+    "http://127.0.0.1:5173"
+]
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.post('/percurso/iniciar')
 def percurso_iniciar():
@@ -66,10 +81,10 @@ async def get_percursos():
 """
     IMPORTANTE: ABAIXO TEMOS ALGUNS EXEMPLOS DE QUERIES E DE COMO UTILIZAR O FASTAPI PARA FAZER APIs
 """
-@app.get("/")
-async def create_table():
-    data = write_bluetooth(b'1')
-    return data
+# @app.get("/")
+# async def create_table():
+#     data = write_bluetooth(b'1')
+#     return data
 
 @app.get("/movie/create")
 async def create_movie():
