@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from typing import Union
 import random
 from databases import Database
-from fastapi import FastAPI
+from fastapi import FastAPI, status, Response
 import asyncio
 import logger
 from init_db import init_database
@@ -77,6 +77,19 @@ async def get_percursos():
     # Return the data in JSON format
     return data
 
+@app.get("/percurso/{idPercurso}/detalhes")
+async def get_telemetria(idPercurso: int, response: Response, idTelemetria: int = None):
+    find_percurso_query = f"SELECT idPercurso FROM percurso WHERE idPercurso={idPercurso}"
+    percurso = await db.fetch_one(find_percurso_query)
+    if percurso is None:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return f"Percurso de id {idPercurso} não existe. Tente um outro id"
+    query = f"SELECT * FROM telemetria WHERE idPercurso={idPercurso} ORDER BY idTelemetria"
+    if idTelemetria is not None:
+        idTelemetria = int(idTelemetria)
+        query = f"SELECT * FROM telemetria WHERE idPercurso={idPercurso} AND idTelemetria > {idTelemetria} ORDER BY idTelemetria"
+    rows = await db.fetch_all(query)
+    return rows
 
 """
     IMPORTANTE: ABAIXO TEMOS ALGUNS EXEMPLOS DE QUERIES E DE COMO UTILIZAR O FASTAPI PARA FAZER APIs

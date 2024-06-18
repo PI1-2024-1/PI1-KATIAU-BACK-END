@@ -11,7 +11,7 @@ async def init_database(db: Database):
         tempoDecorrido FLOAT DEFAULT 0)""")
     await db.execute("""CREATE TABLE IF NOT EXISTS telemetria(
         idTelemetria INTEGER PRIMARY KEY AUTOINCREMENT, 
-        idPercurso FLOAT NOT NULL,
+        idPercurso INTEGER NOT NULL,
         distTotal FLOAT,
         posX FLOAT,
         posY FLOAT,
