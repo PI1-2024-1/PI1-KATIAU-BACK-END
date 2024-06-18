@@ -84,11 +84,12 @@ async def get_telemetria(idPercurso: int, response: Response, idTelemetria: int 
     if percurso is None:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return f"Percurso de id {idPercurso} não existe. Tente um outro id"
-    query = f"SELECT * FROM telemetria WHERE idPercurso={idPercurso} ORDER BY idTelemetria"
+    
+    list_telemetria = f"SELECT * FROM telemetria WHERE idPercurso={idPercurso} ORDER BY idTelemetria"
     if idTelemetria is not None:
         idTelemetria = int(idTelemetria)
-        query = f"SELECT * FROM telemetria WHERE idPercurso={idPercurso} AND idTelemetria > {idTelemetria} ORDER BY idTelemetria"
-    rows = await db.fetch_all(query)
+        list_telemetria = f"SELECT * FROM telemetria WHERE idPercurso={idPercurso} AND idTelemetria > {idTelemetria} ORDER BY idTelemetria"
+    rows = await db.fetch_all(list_telemetria)
     return rows
 
 """
