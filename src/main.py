@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from typing import Union
 import random
 from databases import Database
-from fastapi import FastAPI, status, Response
+from fastapi import FastAPI, status, Response, responses
 import asyncio
 import logger
 from init_db import init_database
@@ -45,6 +45,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get('/')
+def base_route():
+    response = responses.RedirectResponse(url='/docs')
+    return response
+
 
 @app.post('/percurso/iniciar')
 def percurso_iniciar():
@@ -91,33 +97,3 @@ async def get_telemetria(idPercurso: int, response: Response, idTelemetria: int 
         list_telemetria = f"SELECT * FROM telemetria WHERE idPercurso={idPercurso} AND idTelemetria > {idTelemetria} ORDER BY idTelemetria"
     rows = await db.fetch_all(list_telemetria)
     return rows
-
-"""
-    IMPORTANTE: ABAIXO TEMOS ALGUNS EXEMPLOS DE QUERIES E DE COMO UTILIZAR O FASTAPI PARA FAZER APIs
-"""
-# @app.get("/")
-# async def create_table():
-#     data = write_bluetooth(b'1')
-#     return data
-
-@app.get("/movie/create")
-async def create_movie():
-    await db.execute("INSERT INTO movie VALUES('movie1', 2023, 8)")
-    
-    return "Created movie"
-
-@app.get("/movie/get")
-async def get_movie():
-    query = await db.fetch_all('SELECT * FROM percurso')
-    return query
-
-@app.post('carrinho')
-async def toggle_carrinho():
-    ...
-    ...
-
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    ...
-
-
