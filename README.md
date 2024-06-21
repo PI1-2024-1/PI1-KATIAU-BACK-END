@@ -25,6 +25,11 @@ Após isso você deve instalar os pacotes do ambiente descritos no `requirements
 pip install -r requirements.txt
 ```
 
+Crie um arquivo `.env` na raiz do projeto contendo essas informações
+```
+# .env
+ENVIRONMENT=production #production
+```
 Por fim você pode executar a api em modo de desenvolvimento com o `fastapi dev`. Ele irá executar uma instância da API na url http://localhost:8000/. Para visualizar a documentação da API acesse http://localhost:8000/docs.
 
 ```bash
@@ -38,3 +43,15 @@ fastapi run src/main.py
 ```
 
 # Testes
+Para rodar os testes é necessário que tenha criado um arquivo `.env` na raíz do projeto. o `.env` deve conter as seguintes informações.
+
+```
+# .env
+ENVIRONMENT=test #production
+```
+
+Após criar o `.env` rode o seguinte comando em seu terminal.
+
+```
+pytest
+```
