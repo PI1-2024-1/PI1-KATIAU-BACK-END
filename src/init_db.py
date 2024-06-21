@@ -3,10 +3,10 @@ from databases import Database
 async def init_database(db: Database): 
     await db.connect()
     print(f"Conectado ao banco de dados {db.url}")
-    
-    
+
     await db.execute("""CREATE TABLE IF NOT EXISTS percurso(
         idPercurso INTEGER PRIMARY KEY AUTOINCREMENT, 
+        ativo INTEGER DEFAULT 1,
         distPercorrida FLOAT DEFAULT 0,
         tempoDecorrido FLOAT DEFAULT 0)""")
     await db.execute("""CREATE TABLE IF NOT EXISTS telemetria(

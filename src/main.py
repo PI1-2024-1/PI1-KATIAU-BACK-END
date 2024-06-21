@@ -26,7 +26,7 @@ async def pre_init(app: FastAPI):
     await init_database(db)
     
     # Comente essa proxima linha caso necessário
-    # asyncio.create_task(read_bluetooth(db))
+    asyncio.create_task(read_bluetooth(db))
     yield
     await db.disconnect()
     print('Banco desconectado')
@@ -53,15 +53,28 @@ def base_route():
 
 
 @app.post('/percurso/iniciar')
-def percurso_iniciar():
+async def percurso_iniciar(response: Response):
     """
     Inicia um novo percurso e envia uma requisição para o carrinho para iniciar a sua trajetória.
     """
-    idPercurso= random.randint(1, 20)
-    return {'idPercurso': idPercurso, 'message': 'percurso inicado'} 
+    has_active_percurso = "SELECT idPercurso from percurso WHERE ativo = 1"
+    active_percurso = await db.fetch_one(has_active_percurso)
+    if active_percurso is not None:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return f"Já existe um percurso iniciado. Finalize o percurso antes de iniciar um novo"
+    create_percurso = "INSERT INTO percurso DEFAULT VALUES"
+    data = await db.execute(create_percurso)
+    print(data)
+    write_bluetooth(1)
+    return {'idPercurso': data, 'message': 'percurso inicado'} 
 
 @app.put('/percurso/finalizar')
-def percurso_finalizar():
+async def percurso_finalizar():
+    find_active_percurso = "SELECT idPercurso from percurso WHERE ativo = 1"
+    active_percurso = await db.fetch_one(find_active_percurso)
+    deactivate_percurso = f'UPDATE percurso SET ativo=0 WHERE idPercurso = {active_percurso}'
+    await db.execute(deactivate_percurso)
+    write_bluetooth(0)
     return {'message': 'percurso finalizado'}
 
 
