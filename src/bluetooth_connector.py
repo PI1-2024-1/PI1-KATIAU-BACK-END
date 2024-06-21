@@ -16,12 +16,17 @@ def write_bluetooth(data: bytes):
 
 
 async def get_current_percurso(db:Database):
-    data = await db.fetch_one("SELECT idPercurso FROM percurso ORDER BY idPercurso DESC LIMIT 1;")
-    # print('idPercurso: ', data['idPercurso'])
+    data = await db.fetch_one("SELECT idPercurso FROM percurso WHERE ativo = 1;")
+    if data is None:
+        logger.info('Nenhum percurso encontrado')
+        return None
     return data['idPercurso']
 
 async def save_telemetria_in_db(db: Database, telemetria):
     idPercurso = await get_current_percurso(db)
+    if idPercurso is None:
+        logger.info('Nenhum percurso ativo no momento. Ignorando registro de telemetria')
+        return
 
     logger.info(f'{idPercurso}, {telemetria}')
     sql = f"""INSERT INTO telemetria (idPercurso, distTotal, posX, posY, velocidade, aceleracao, corrente, energia, data) VALUES 
