@@ -1,16 +1,20 @@
 from contextlib import asynccontextmanager
 from typing import Union
-import random
 from databases import Database
 from fastapi import FastAPI, status, Response, responses
 import asyncio
-import logger
-from init_db import init_database
-from bluetooth_connector import read_bluetooth, write_bluetooth
+from dotenv import load_dotenv
+import os
+from .init_db import init_database
+from .bluetooth_connector import read_bluetooth, write_bluetooth
 from fastapi.middleware.cors import CORSMiddleware
+load_dotenv()
+environment = os.getenv('ENVIRONMENT', 'production')
 
-
-DATABASE_URL="sqlite:///./katiau.db"
+if environment == 'production':
+    DATABASE_URL="sqlite://./katiau.db"
+if environment == 'test':
+    DATABASE_URL="sqlite://./test.db"
 db = Database(DATABASE_URL) 
 
 # def bluetooth_reader_threaded_function(args):
@@ -26,7 +30,7 @@ async def pre_init(app: FastAPI):
     await init_database(db)
     
     # Comente essa proxima linha caso necessário
-    asyncio.create_task(read_bluetooth(db))
+    # asyncio.create_task(read_bluetooth(db))
     yield
     await db.disconnect()
     print('Banco desconectado')

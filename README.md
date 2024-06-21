@@ -36,3 +36,5 @@ Para rodar a API em modo de produção execute
 ```bash
 fastapi run src/main.py
 ```
+
+# Testes
