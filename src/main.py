@@ -1,3 +1,5 @@
+import uvicorn
+import threading
 from contextlib import asynccontextmanager
 from typing import Union
 from databases import Database
@@ -19,7 +21,7 @@ if environment == 'test':
     DATABASE_URL="sqlite://./test.db"
 db = Database(DATABASE_URL) 
 
-bt_connector = BluetoothConnector(db, port='COM11', baudrate=9600)
+bt_connector = BluetoothConnector(db, port='COM10', baudrate=115200)
 # def bluetooth_reader_threaded_function(args):
 #     """
 #     Função que encapsula a função de  de bluetooth passando o contexto do banco de dados
@@ -33,10 +35,14 @@ background_tasks = set()
 async def pre_init(app: FastAPI):
     await init_database(db)
     bt_connector.start_connection()
+    thread = threading.Thread(target=asyncio.run, args=(bt_connector.read_bluetooth(),))
+    thread.start()
+
     # Comente essa proxima linha caso necessário
     # asyncio.create_task(bt_connector.read_bluetooth())
     # print('iniciado')
     yield
+    thread.join()
     bt_connector.serialPort.close()
     await db.disconnect()
     print('Banco desconectado')
@@ -79,7 +85,7 @@ async def percurso_iniciar(response: Response, background_tasks: BackgroundTasks
     create_percurso = "INSERT INTO percurso DEFAULT VALUES"
     data = await db.execute(create_percurso)
     print(data)
-    await run_in_threadpool(start_bt_reading, bt_connector)
+    # await run_in_threadpool(start_bt_reading, bt_connector)
     bt_connector.write_bluetooth("Init")
     return {'idPercurso': data, 'message': 'percurso inicado'} 
 
@@ -116,3 +122,6 @@ async def get_telemetria(idPercurso: int, response: Response, idTelemetria: int 
         list_telemetria = f"SELECT * FROM telemetria WHERE idPercurso={idPercurso} AND idTelemetria > {idTelemetria} ORDER BY idTelemetria"
     rows = await db.fetch_all(list_telemetria)
     return rows
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)

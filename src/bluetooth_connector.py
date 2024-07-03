@@ -61,6 +61,7 @@ class BluetoothConnector:
         active_percurso_id = await self.get_current_percurso()
         if active_percurso_id is None:
             logger.info("Nenhum percurso ativo no momento, ignorando comando de inativação")
+            return
         await self.db.execute(f"UPDATE percurso SET ativo = 0 WHERE idPercurso = {active_percurso_id}")
 
 
@@ -76,8 +77,9 @@ class BluetoothConnector:
                     print(f"data_recieved: {data_recieved}")
                     data_recieved = json.loads(data_recieved)
                     if "evento" in data_recieved:
+                        data_recieved = None
                         await self.finish_percurso()
-                        break
+                        continue
                     data_recieved['data'] = datetime.datetime.now().isoformat()
                     # print(car_record)
                     await self.save_telemetria_in_db(data_recieved)
