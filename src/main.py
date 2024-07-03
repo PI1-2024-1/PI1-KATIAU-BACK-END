@@ -1,40 +1,50 @@
+import uvicorn
+import threading
 from contextlib import asynccontextmanager
 from typing import Union
 from databases import Database
-from fastapi import FastAPI, status, Response, responses
+from fastapi import FastAPI, status, Response, responses, BackgroundTasks
 import asyncio
 from dotenv import load_dotenv
 import os
 from .init_db import init_database
-from .bluetooth_connector import read_bluetooth, write_bluetooth
+from starlette.concurrency import run_in_threadpool
+
+from .bluetooth_connector import BluetoothConnector
 from fastapi.middleware.cors import CORSMiddleware
 load_dotenv()
 environment = os.getenv('ENVIRONMENT', 'production')
 
-if environment == 'production':
-    DATABASE_URL="sqlite://./katiau.db"
+
+DATABASE_URL="sqlite://./katiau.db"
 if environment == 'test':
     DATABASE_URL="sqlite://./test.db"
 db = Database(DATABASE_URL) 
 
-# def bluetooth_reader_threaded_function(args):
-#     """
-#     Função que encapsula a função de  de bluetooth passando o contexto do banco de dados
-#     """
+bt_connector = BluetoothConnector(db, port='COM10', baudrate=115200)
     
-#     read_bluetooth(args)
-    
+background_tasks = set()
 
 @asynccontextmanager
 async def pre_init(app: FastAPI):
     await init_database(db)
-    
+    bt_connector_thread = threading.Thread(target=asyncio.run, args=(bt_connector.start_connection(),))
+    bt_connector_thread.start()
+    thread = threading.Thread(target=asyncio.run, args=(bt_connector.read_bluetooth(bt_connector_thread),))
+    thread.daemon=True
+    thread.start()
+
     # Comente essa proxima linha caso necessário
-    # asyncio.create_task(read_bluetooth(db))
+    # asyncio.create_task(bt_connector.read_bluetooth())
+    # print('iniciado')
     yield
+    thread.join()
+    bt_connector.serialPort.close()
     await db.disconnect()
     print('Banco desconectado')
 app = FastAPI(lifespan=pre_init)
+
+
 
 origins = [
     "http://localhost",
@@ -55,9 +65,11 @@ def base_route():
     response = responses.RedirectResponse(url='/docs')
     return response
 
+async def start_bt_reading(bt_connector: BluetoothConnector):
+    await bt_connector.read_bluetooth()
 
 @app.post('/percurso/iniciar')
-async def percurso_iniciar(response: Response):
+async def percurso_iniciar(response: Response, background_tasks: BackgroundTasks):
     """
     Inicia um novo percurso e envia uma requisição para o carrinho para iniciar a sua trajetória.
     """
@@ -69,17 +81,9 @@ async def percurso_iniciar(response: Response):
     create_percurso = "INSERT INTO percurso DEFAULT VALUES"
     data = await db.execute(create_percurso)
     print(data)
-    write_bluetooth(1)
+    # await run_in_threadpool(start_bt_reading, bt_connector)
+    bt_connector.write_bluetooth("Init")
     return {'idPercurso': data, 'message': 'percurso inicado'} 
-
-@app.put('/percurso/finalizar')
-async def percurso_finalizar():
-    find_active_percurso = "SELECT idPercurso from percurso WHERE ativo = 1"
-    active_percurso = await db.fetch_one(find_active_percurso)
-    deactivate_percurso = f'UPDATE percurso SET ativo=0 WHERE idPercurso = {active_percurso}'
-    await db.execute(deactivate_percurso)
-    write_bluetooth(0)
-    return {'message': 'percurso finalizado'}
 
 
 @app.get("/percurso/")
@@ -114,3 +118,6 @@ async def get_telemetria(idPercurso: int, response: Response, idTelemetria: int 
         list_telemetria = f"SELECT * FROM telemetria WHERE idPercurso={idPercurso} AND idTelemetria > {idTelemetria} ORDER BY idTelemetria"
     rows = await db.fetch_all(list_telemetria)
     return rows
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
