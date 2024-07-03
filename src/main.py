@@ -22,20 +22,16 @@ if environment == 'test':
 db = Database(DATABASE_URL) 
 
 bt_connector = BluetoothConnector(db, port='COM10', baudrate=115200)
-# def bluetooth_reader_threaded_function(args):
-#     """
-#     Função que encapsula a função de  de bluetooth passando o contexto do banco de dados
-#     """
-    
-#     read_bluetooth(args)
     
 background_tasks = set()
 
 @asynccontextmanager
 async def pre_init(app: FastAPI):
     await init_database(db)
-    bt_connector.start_connection()
-    thread = threading.Thread(target=asyncio.run, args=(bt_connector.read_bluetooth(),))
+    bt_connector_thread = threading.Thread(target=asyncio.run, args=(bt_connector.start_connection(),))
+    bt_connector_thread.start()
+    thread = threading.Thread(target=asyncio.run, args=(bt_connector.read_bluetooth(bt_connector_thread),))
+    thread.daemon=True
     thread.start()
 
     # Comente essa proxima linha caso necessário

@@ -1,5 +1,7 @@
 import serial
 import datetime
+import threading
+import asyncio
 import json
 import time
 from databases import Database
@@ -16,7 +18,7 @@ class BluetoothConnector:
         self.db = db
         
 
-    def start_connection(self):
+    async def start_connection(self):
         while 1:
             try:
                 self.serialPort = serial.Serial(
@@ -25,7 +27,7 @@ class BluetoothConnector:
             except serial.SerialException as e:
                 logger.error(f'Não foi possível conectar ao bluetooth na porta {self.port}. Tentando novamente em 10 seg')
                 logger.error(e)
-                time.sleep(10)
+                await asyncio.sleep(10)
                 continue
             break
         logger.info(f'Bluetooth conectado com sucesso na porta {self.port}')
@@ -65,13 +67,14 @@ class BluetoothConnector:
         await self.db.execute(f"UPDATE percurso SET ativo = 0 WHERE idPercurso = {active_percurso_id}")
 
 
-    async def read_bluetooth(self):
+    async def read_bluetooth(self, bt_starter_thread: threading.Thread):
         logger.info("Processo de leitura de bluetooth iniciado.")
-
+        logger.info('Aguardando conexão a bluetooth em outra thread')
+        bt_starter_thread.join()
         # TODO: INSEIRIR SerialException para tratar caso de desconexão.
         try:
             while 1:
-                time.sleep(0.05)
+                await asyncio.sleep(0.05)
                 if self.serialPort.in_waiting > 0:
                     data_recieved = self.serialPort.readline()
                     print(f"data_recieved: {data_recieved}")
@@ -87,6 +90,8 @@ class BluetoothConnector:
         except serial.SerialException as e:
             logger.error(e)
             logger.info("Dispositivo desconectado.")
+        except Exception as error:
+            print(error)
         
 
 
