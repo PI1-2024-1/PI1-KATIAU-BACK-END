@@ -23,7 +23,7 @@ class BluetoothConnector:
                     port=self.port, baudrate=self.baudrate, bytesize=8, timeout=2, stopbits=serial.STOPBITS_ONE
                     )
             except serial.SerialException as e:
-                logger.error(f'Não foi possível conectar ao bluetooth na porta {port}. Tentando novamente em 10 seg')
+                logger.error(f'Não foi possível conectar ao bluetooth na porta {self.port}. Tentando novamente em 10 seg')
                 logger.error(e)
                 time.sleep(10)
                 continue
@@ -56,21 +56,36 @@ class BluetoothConnector:
         await self.db.execute(sql)
         logger.info('Registro Telemetria inserido no banco')
 
+    async def finish_percurso(self):
+        logger.info("Percurso Finalizado")
+        active_percurso_id = await self.get_current_percurso()
+        if active_percurso_id is None:
+            logger.info("Nenhum percurso ativo no momento, ignorando comando de inativação")
+        await self.db.execute(f"UPDATE percurso SET ativo = 0 WHERE idPercurso = {active_percurso_id}")
+
 
     async def read_bluetooth(self):
         logger.info("Processo de leitura de bluetooth iniciado.")
 
         # TODO: INSEIRIR SerialException para tratar caso de desconexão.
-        while 1:
-            time.sleep(0.05)
-            if self.serialPort.in_waiting > 0:
-                data_recieved = self.serialPort.readline()
-                print(f"data_recieved: {data_recieved}")
-                car_record = json.loads(data_recieved)
-                car_record['data'] = datetime.datetime.now().isoformat()
-                # print(car_record)
-                await self.save_telemetria_in_db(car_record)
-                continue
+        try:
+            while 1:
+                time.sleep(0.05)
+                if self.serialPort.in_waiting > 0:
+                    data_recieved = self.serialPort.readline()
+                    print(f"data_recieved: {data_recieved}")
+                    data_recieved = json.loads(data_recieved)
+                    if "evento" in data_recieved:
+                        await self.finish_percurso()
+                        break
+                    data_recieved['data'] = datetime.datetime.now().isoformat()
+                    # print(car_record)
+                    await self.save_telemetria_in_db(data_recieved)
+                    continue
+        except serial.SerialException as e:
+            logger.error(e)
+            logger.info("Dispositivo desconectado.")
+        
 
 
 if __name__ == '__main__':
@@ -78,4 +93,5 @@ if __name__ == '__main__':
     db = Database(DATABASE_URL) 
     import asyncio
     bt_conn = BluetoothConnector(db)
+    bt_conn.start_connection()
     asyncio.run(bt_conn.read_bluetooth())

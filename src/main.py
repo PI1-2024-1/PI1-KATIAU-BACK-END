@@ -1,11 +1,13 @@
 from contextlib import asynccontextmanager
 from typing import Union
 from databases import Database
-from fastapi import FastAPI, status, Response, responses
+from fastapi import FastAPI, status, Response, responses, BackgroundTasks
 import asyncio
 from dotenv import load_dotenv
 import os
 from .init_db import init_database
+from starlette.concurrency import run_in_threadpool
+
 from .bluetooth_connector import BluetoothConnector
 from fastapi.middleware.cors import CORSMiddleware
 load_dotenv()
@@ -17,7 +19,7 @@ if environment == 'test':
     DATABASE_URL="sqlite://./test.db"
 db = Database(DATABASE_URL) 
 
-bt_connector = BluetoothConnector(db)
+bt_connector = BluetoothConnector(db, port='COM11', baudrate=9600)
 # def bluetooth_reader_threaded_function(args):
 #     """
 #     Função que encapsula a função de  de bluetooth passando o contexto do banco de dados
@@ -32,12 +34,10 @@ async def pre_init(app: FastAPI):
     await init_database(db)
     bt_connector.start_connection()
     # Comente essa proxima linha caso necessário
-    task = asyncio.create_task(bt_connector.read_bluetooth())
-    background_tasks.add(task)
+    # asyncio.create_task(bt_connector.read_bluetooth())
+    # print('iniciado')
     yield
     bt_connector.serialPort.close()
-    task.cancel()
-    task.add_done_callback(background_tasks.discard)
     await db.disconnect()
     print('Banco desconectado')
 app = FastAPI(lifespan=pre_init)
@@ -63,22 +63,25 @@ def base_route():
     response = responses.RedirectResponse(url='/docs')
     return response
 
+async def start_bt_reading(bt_connector: BluetoothConnector):
+    await bt_connector.read_bluetooth()
 
 @app.post('/percurso/iniciar')
-async def percurso_iniciar(response: Response):
+async def percurso_iniciar(response: Response, background_tasks: BackgroundTasks):
     """
     Inicia um novo percurso e envia uma requisição para o carrinho para iniciar a sua trajetória.
     """
-    # has_active_percurso = "SELECT idPercurso from percurso WHERE ativo = 1"
-    # active_percurso = await db.fetch_one(has_active_percurso)
-    # if active_percurso is not None:
-    #     response.status_code = status.HTTP_400_BAD_REQUEST
-    #     return f"Já existe um percurso iniciado. Finalize o percurso antes de iniciar um novo"
-    # create_percurso = "INSERT INTO percurso DEFAULT VALUES"
-    # data = await db.execute(create_percurso)
-    # print(data)
-    bt_connector.write_bluetooth("Iniciar")
-    return {'idPercurso': 1, 'message': 'percurso inicado'} 
+    has_active_percurso = "SELECT idPercurso from percurso WHERE ativo = 1"
+    active_percurso = await db.fetch_one(has_active_percurso)
+    if active_percurso is not None:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return f"Já existe um percurso iniciado. Finalize o percurso antes de iniciar um novo"
+    create_percurso = "INSERT INTO percurso DEFAULT VALUES"
+    data = await db.execute(create_percurso)
+    print(data)
+    await run_in_threadpool(start_bt_reading, bt_connector)
+    bt_connector.write_bluetooth("Init")
+    return {'idPercurso': data, 'message': 'percurso inicado'} 
 
 
 @app.get("/percurso/")
